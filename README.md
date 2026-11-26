@@ -1,10 +1,11 @@
-# rhino-finance
+# rhino-stock-analysis
 
-A personal study project that models how the YouTube channel 视野环球财经 (Rhino) makes US-stock decisions: the process, not the results.
+A Claude Code skill that applies the decision process of the YouTube channel 视野环球财经 (Rhino) to a US stock: forward value range, support/resistance strength, bottoming candles, the 9 buy points, the 18 no-buy rules, left-side tranches and scenario plans.
 
-- `ingest/`, `learn/`, `ledger/`, `rhino/pipeline/`: download, transcribe, OCR and extract teaching videos into method notes (raw media and transcripts are not in this repo).
-- `rhino/skill/rhino-stock-analysis/`: a Claude Code skill that applies the method to a live ticker, with a Yahoo Finance data script.
-- `docs/`: the method write-ups (valuation, support/entry, the overall decision flow).
-- `eval/`, `rhino/eval/`: ledger backtests and skill test runs.
+- `rhino/skill/rhino-stock-analysis/SKILL.md`: the workflow and output format.
+- `references/01-07`: valuation, support/resistance, buy points, no-buy checklist, position and risk, market context, indicators.
+- `scripts/rhino_data.py`: prints a Yahoo Finance fact sheet for one ticker (needs `pip install yfinance`).
 
-Not investment advice.
+Install: copy or symlink `rhino/skill/rhino-stock-analysis` into `~/.claude/skills/`.
+
+A personal study tool. Not investment advice.

@@ -1,14 +1,12 @@
-# Raw member material and local state: never commit
-data/
-rhino/media/
-*.sqlite
-*.mp4
-*.m4a
-*.wav
-*.log
+# This repo publishes only the rhino-stock-analysis skill.
+# Everything else in the project folder stays local.
+/*
+!/README.md
+!/.gitignore
+!/rhino/
+/rhino/*
+!/rhino/skill/
 
-# Environments and caches
-.venvs/
 __pycache__/
 *.pyc
 .DS_Store
