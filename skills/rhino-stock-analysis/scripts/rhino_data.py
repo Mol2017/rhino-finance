@@ -29,6 +29,22 @@ SECTOR_ETF = {"technology": "XLK", "healthcare": "XLV", "financial-services": "X
               "consumer-defensive": "XLP", "energy": "XLE", "industrials": "XLI", "basic-materials": "XLB",
               "real-estate": "XLRE", "utilities": "XLU", "communication-services": "XLC"}
 OUT = {}
+SYM, INFO = "", {}
+
+
+def yurl(sym, page=""):
+    q = sym.replace("^", "%5E")
+    return f"https://finance.yahoo.com/quote/{q}/{page + '/' if page else ''}"
+
+
+def tv_url(sym, info):
+    ex = {"NMS": "NASDAQ", "NGM": "NASDAQ", "NCM": "NASDAQ", "NYQ": "NYSE", "ASE": "AMEX", "PCX": "AMEX"}.get(info.get("exchange"), "")
+    return f"https://www.tradingview.com/chart/?symbol={ex + '%3A' if ex else ''}{sym}"
+
+
+def src(*items):
+    """Print a source line: items are (label, url) pairs."""
+    print("\n来源：" + "；".join(f"[{a}]({b})" for a, b in items))
 
 
 def p(x, d=2):
@@ -161,6 +177,9 @@ def market():
     except Exception:  # noqa: BLE001
         print("- 板块 ETF 缺数据")
     OUT["market"] = rows
+    src(*[(f"{x} 日线", yurl(x, "history")) for x in ("QQQ", "SPY", "DIA", "IWM", "SOXX")],
+        ("VIX", yurl("^VIX")), ("10 年期收益率 ^TNX", yurl("^TNX")), ("板块 ETF（如 XLK）", yurl("XLK", "history")))
+    print("斐波那契、MA200、1 月涨跌都由上面的日线收盘计算。")
 
 
 def basics(t, info, h):
@@ -191,6 +210,7 @@ def basics(t, info, h):
     print(f"- 最近一日开盘相对前收 {gap:+.1f}%（不买第 17 条要配合新闻判断：非财报消息引起的盘前盘后大涨大跌）")
     print(f"- 下次财报：{nxt or '—'}；上次财报时间戳：{pd.to_datetime(ed, unit='s').date() if ed else '—'}")
     OUT["basics"] = {"price": float(price), "mcap": mc, "dollar_vol20": float(dv), "next_earnings": str(nxt)}
+    src(("报价、市值、财报日", yurl(SYM)), ("做空比例、股本", yurl(SYM, "key-statistics")), ("日线（成交额、跳空）", yurl(SYM, "history")))
 
 
 def estimates(t, info):
@@ -231,6 +251,8 @@ def estimates(t, info):
         flags.append(f"本财年结束于 {nfy.date()}，剩约 {left} 天" + ("（已过 3/4：主区间看下一财年）" if left < 92 else ""))
     for f in flags:
         print(f"- {f}")
+    src(("EPS/营收预期、修正趋势和上调下调家数", yurl(SYM, "analysis")))
+    print("Yahoo 的 Analysis 页每天更新；表里是运行当天的值，之后再看会变。")
 
 
 def valuation(t, info, h, pe_band):
@@ -269,6 +291,9 @@ def valuation(t, info, h, pe_band):
             if e and e > 0:
                 print(f"  - {lab} EPS {e:.2f} → 区间 {lo * e:.2f}-{hi * e:.2f}，中位价 {mid * e:.2f}（现价 {price:.2f}）")
     ps_history(t, info, h)
+    src(("PE、P/S、EV/营收、毛利率", yurl(SYM, "key-statistics")), ("现金流（季度）", yurl(SYM, "cash-flow")),
+        ("营收（年度/季度）", yurl(SYM, "financials")), ("历史股价", yurl(SYM, "history")))
+    print("自身 P/S 历史 = 当时收盘价 × 当时股本 ÷ 滚动 12 个月营收（脚本计算）。")
 
 
 def ps_history(t, info, h):
@@ -345,7 +370,7 @@ def peers(info, symbols):
             continue
         print(f"| {s} | {p(i.get('marketCap'))} | {p(i.get('priceToSalesTrailing12Months'))} | {p(i.get('enterpriseToRevenue'))} | "
               f"{p((i.get('revenueGrowth') or float('nan')) * 100, 1)}% | {p((i.get('grossMargins') or float('nan')) * 100, 1)}% | {p(i.get('forwardPE')) if (i.get('forwardPE') or 0) > 0 else '不适用'} |")
-
+    src(*[(f"{x} 关键指标", yurl(x, "key-statistics")) for x in symbols])
 
 def sector_rank(sym, info, h):
     section("6. 板块排名（不买第 6 条：前一交易日跌幅排前 10%）")
@@ -375,7 +400,10 @@ def sector_rank(sym, info, h):
         print(f"- 细分行业（{info.get('industry')}）里排第 {list(ih.index).index(sym) + 1}/{len(ih)}（{ih[sym]:+.2f}%）")
     except Exception:  # noqa: BLE001
         pass
-
+    src((f"板块 {key} 成分（市值前列）", f"https://finance.yahoo.com/sectors/{key}/"),
+        (f"细分行业 {info.get('industryKey')}", f"https://finance.yahoo.com/sectors/{key}/{info.get('industryKey')}/"),
+        (f"{etf} 日线", yurl(etf or "SPY", "history")))
+    print("排名用各成分股最近两个交易日收盘算涨跌幅（脚本计算）。")
 
 def candles(h):
     """Classify the last 3 bars with the grading rules in references/03 (simplified)."""
@@ -630,7 +658,9 @@ def weekly(h):
     for d, r in w.iterrows():
         note = f"（本周未完成，截至 {last_day.date()}）" if d == w.index[-1] and last_day.weekday() < 4 else ""
         print(f"| {d.date()}{note} | {r.Open:.2f} | {r.High:.2f} | {r.Low:.2f} | {r.Close:.2f} | {r.Volume / 1e6:.1f} |")
-
+    src(("日线和周线数据", yurl(SYM, "history")), ("TradingView 图表（可目测核对）", tv_url(SYM, INFO)))
+    print("第 7-10 节的 RSI(6,24，Wilder)、均线、MACD(12,26,9)、5 日滚动 VWAP、九转、斐波那契、区间都由这份日线计算，"
+          "TradingView 上加同样参数的指标可以核对。")
 
 def main():
     ap = argparse.ArgumentParser()
@@ -640,9 +670,11 @@ def main():
     ap.add_argument("--json")
     ap.add_argument("--no-market", action="store_true")
     a = ap.parse_args()
+    global SYM, INFO
     sym = a.ticker.upper()
     t = yf.Ticker(sym)
     info = t.info
+    SYM, INFO = sym, info
     h = add_ind(hist(sym, "3y"))
     if h.empty:
         sys.exit(f"no price data for {sym}")
