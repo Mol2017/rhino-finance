@@ -1,0 +1,14 @@
+# Raw member material and local state: never commit
+data/
+rhino/media/
+*.sqlite
+*.mp4
+*.m4a
+*.wav
+*.log
+
+# Environments and caches
+.venvs/
+__pycache__/
+*.pyc
+.DS_Store
