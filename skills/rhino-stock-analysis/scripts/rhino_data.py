@@ -42,6 +42,11 @@ def tv_url(sym, info):
     return f"https://www.tradingview.com/chart/?symbol={ex + '%3A' if ex else ''}{sym}"
 
 
+def L(text, url):
+    """A number with its source link, for copying straight into the report."""
+    return f"[{text}]({url})"
+
+
 def src(*items):
     """Print a source line: items are (label, url) pairs."""
     print("\n来源：" + "；".join(f"[{a}]({b})" for a, b in items))
@@ -155,14 +160,15 @@ def market():
         if up and dist > 0 and c.iloc[-1] < ma200:
             st += "；但在 200 日线下方，结构和均线冲突"
         m1 = (c.iloc[-1] / c.iloc[-22] - 1) * 100
-        print(f"| {s} | {c.iloc[-1]:.2f} | {(c.iloc[-1] / ma200 - 1) * 100:+.1f}% | {m1:+.1f}% | {lo:.2f} ({lo_i.date()}) → {hi:.2f} ({hi_i.date()}) | "
+        hu = yurl(s, "history")
+        print(f"| {s} | {L(f'{c.iloc[-1]:.2f}', hu)} | {(c.iloc[-1] / ma200 - 1) * 100:+.1f}% | {m1:+.1f}% | {L(f'{lo:.2f}', hu)} ({lo_i.date()}) → {L(f'{hi:.2f}', hu)} ({hi_i.date()}) | "
               f"{' / '.join(f'{x:.1f}' for x in lv)} | {seq}（旧→新） | {st} |")
         rows[s] = {"close": float(c.iloc[-1]), "ma200": float(ma200), "fib": lv}
     extra = []
     for s, name in (("^VIX", "VIX"), ("^TNX", "美 10 年期收益率")):
         try:
             v = hist(s, "1mo").Close
-            extra.append(f"{name} {v.iloc[-1]:.2f}（5 日前 {v.iloc[-6]:.2f}）")
+            extra.append(f"{name} {L(f'{v.iloc[-1]:.2f}', yurl(s))}（5 日前 {v.iloc[-6]:.2f}）")
             rows[s] = float(v.iloc[-1])
         except Exception:  # noqa: BLE001
             extra.append(f"{name} 缺数据")
@@ -202,13 +208,15 @@ def basics(t, info, h):
     except Exception:  # noqa: BLE001
         pass
     print(f"- {info.get('longName')} · {info.get('sector')} / {info.get('industry')} · 交易所 {info.get('exchange')}")
-    print(f"- 收盘 {price:.2f}（{h.index[-1].date()}）· 市值 {p(mc)} · 20 日均成交额 {p(dv)} · 做空占流通 {p((info.get('shortPercentOfFloat') or 0) * 100, 1)}%")
+    ks = yurl(SYM, "key-statistics")
+    print(f"- 收盘 {L(f'{price:.2f}', yurl(SYM, 'history'))}（{h.index[-1].date()}）· 市值 {L(p(mc), ks)} · 20 日均成交额 {L(p(dv), yurl(SYM, 'history'))}（成交量 × 收盘，脚本计算） · "
+          f"做空占流通 {L(p((info.get('shortPercentOfFloat') or 0) * 100, 1) + '%', ks)}")
     if mc and mc2 and (mc < 10e9) != (mc2 < 10e9):
         gates.append(f"两种口径跨过 100 亿线：Yahoo marketCap {p(mc)}，股本×价 {p(mc2)}")
     gap = (h.Open.iloc[-1] / h.Close.iloc[-2] - 1) * 100
     print(f"- 门槛：{'；'.join(gates)}")
     print(f"- 最近一日开盘相对前收 {gap:+.1f}%（不买第 17 条要配合新闻判断：非财报消息引起的盘前盘后大涨大跌）")
-    print(f"- 下次财报：{nxt or '—'}；上次财报时间戳：{pd.to_datetime(ed, unit='s').date() if ed else '—'}")
+    print(f"- 下次财报：{L(str(nxt), yurl(SYM)) if nxt else '—'}；上次财报时间戳：{pd.to_datetime(ed, unit='s').date() if ed else '—'}")
     OUT["basics"] = {"price": float(price), "mcap": mc, "dollar_vol20": float(dv), "next_earnings": str(nxt)}
     src(("报价、市值、财报日", yurl(SYM)), ("做空比例、股本", yurl(SYM, "key-statistics")), ("日线（成交额、跳空）", yurl(SYM, "history")))
 
@@ -232,9 +240,10 @@ def estimates(t, info):
         r = rv.loc[k] if k in rv.index else {}
         v = re_.loc[k] if k in re_.index else {}
         up, dn = r.get("upLast30days"), r.get("downLast30days")
-        print(f"| {lab[k]} | {p(e.get('avg'))} | {p(e.get('low'))} | {p(e.get('high'))} | {p(e.get('numberOfAnalysts'), 0)} | "
-              f"{p(trk.get('90daysAgo'))} | {p(trk.get('30daysAgo'))} | {p(trk.get('7daysAgo'))} | {p(up, 0)}/{p(dn, 0)} | "
-              f"{p(v.get('avg'))} | {p((v.get('growth') or float('nan')) * 100, 1)}% |")
+        au = yurl(SYM, "analysis")
+        print(f"| {lab[k]} | {L(p(e.get('avg')), au)} | {L(p(e.get('low')), au)} | {L(p(e.get('high')), au)} | {p(e.get('numberOfAnalysts'), 0)} | "
+              f"{L(p(trk.get('90daysAgo')), au)} | {L(p(trk.get('30daysAgo')), au)} | {L(p(trk.get('7daysAgo')), au)} | {L(f'{p(up, 0)}/{p(dn, 0)}', au)} | "
+              f"{L(p(v.get('avg')), au)} | {p((v.get('growth') or float('nan')) * 100, 1)}% |")
         est[k] = {"eps": e.get("avg"), "eps_90d": trk.get("90daysAgo"), "rev": v.get("avg"), "rev_growth": v.get("growth")}
     OUT["estimates"] = {k: {a: (float(b) if b is not None and not pd.isna(b) else None) for a, b in v.items()} for k, v in est.items()}
     e0, e1 = est.get("0y", {}).get("eps"), est.get("+1y", {}).get("eps")
@@ -263,8 +272,10 @@ def valuation(t, info, h, pe_band):
     fpe_s = "不适用（EPS ≤ 0）" if fpe is None or fpe <= 0 else p(fpe)
     tpe = info.get("trailingPE")
     tpe_s = "不适用（EPS ≤ 0）" if tpe is None or tpe <= 0 else p(tpe)
-    print(f"- 滚动 PE {tpe_s} · 前瞻 PE {fpe_s} · P/S(ttm) {p(info.get('priceToSalesTrailing12Months'))} · "
-          f"EV/营收(ttm) {p(info.get('enterpriseToRevenue'))} · 毛利率 {p((info.get('grossMargins') or 0) * 100, 1)}%")
+    ks = yurl(SYM, "key-statistics")
+    tpe_s, fpe_s = (x if "不适用" in x else L(x, ks) for x in (tpe_s, fpe_s))
+    print(f"- 滚动 PE {tpe_s} · 前瞻 PE {fpe_s} · P/S(ttm) {L(p(info.get('priceToSalesTrailing12Months')), ks)} · "
+          f"EV/营收(ttm) {L(p(info.get('enterpriseToRevenue')), ks)} · 毛利率 {L(p((info.get('grossMargins') or 0) * 100, 1) + '%', ks)}")
     # cash flow from the statements, not the info field
     try:
         cf = t.quarterly_cashflow
@@ -273,7 +284,8 @@ def valuation(t, info, h, pe_band):
         if len(ocf) == 4:
             fcf = ocf.sum() + (cap.sum() if cap is not None and len(cap) == 4 else 0)
             kind = "**负现金流**（01：负现金流早期成长股没法估值，按风险回报小仓位）" if fcf < 0 else "正现金流"
-            print(f"- 近 4 季经营现金流 {p(float(ocf.sum()))}，自由现金流（经营 + 资本开支）{p(float(fcf))}：{kind}")
+            cu = yurl(SYM, "cash-flow")
+            print(f"- 近 4 季经营现金流 {L(p(float(ocf.sum())), cu)}，自由现金流（经营 + 资本开支，季度报表相加）{L(p(float(fcf)), cu)}：{kind}")
             if info.get("freeCashflow") and (info["freeCashflow"] > 0) != (fcf > 0):
                 print(f"  - 注意：Yahoo 汇总字段 freeCashflow = {p(info['freeCashflow'])}，和报表算出的符号相反，以报表为准")
     except Exception:  # noqa: BLE001
@@ -281,7 +293,7 @@ def valuation(t, info, h, pe_band):
     est = OUT.get("estimates", {})
     r1 = est.get("+1y", {}).get("rev")
     if ev and r1:
-        print(f"- EV / 下财年营收 ≈ {ev / r1:.2f}×")
+        print(f"- EV / 下财年营收 ≈ {ev / r1:.2f}×（= EV {L(p(ev), yurl(SYM, 'key-statistics'))} ÷ 下财年营收 {L(p(r1), yurl(SYM, 'analysis'))}）")
     if pe_band and est:
         lo, hi = pe_band
         mid = (lo + hi) / 2
@@ -338,7 +350,7 @@ def ps_history(t, info, h):
         n = n or info.get("sharesOutstanding")
         v = px.iloc[-1] * n / pts[d]
         vals.append(v)
-        rows.append(f"{d.date()}: {v:.1f}×")
+        rows.append(f"{d.date()}: {L(f'{v:.1f}×', yurl(SYM, 'financials'))}")
     cur = info.get("priceToSalesTrailing12Months")
     first = info.get("firstTradeDateMilliseconds")
     yrs = (pd.Timestamp.now() - pd.to_datetime(first, unit="ms")).days / 365 if first else (h.index[-1] - h.index[0]).days / 365
@@ -368,7 +380,8 @@ def peers(info, symbols):
         if not i.get("marketCap"):
             print(f"| {s} | 缺数据（可能已退市或被收购） | | | | | |")
             continue
-        print(f"| {s} | {p(i.get('marketCap'))} | {p(i.get('priceToSalesTrailing12Months'))} | {p(i.get('enterpriseToRevenue'))} | "
+        ku = yurl(s, "key-statistics")
+        print(f"| {L(s, ku)} | {p(i.get('marketCap'))} | {p(i.get('priceToSalesTrailing12Months'))} | {p(i.get('enterpriseToRevenue'))} | "
               f"{p((i.get('revenueGrowth') or float('nan')) * 100, 1)}% | {p((i.get('grossMargins') or float('nan')) * 100, 1)}% | {p(i.get('forwardPE')) if (i.get('forwardPE') or 0) > 0 else '不适用'} |")
     src(*[(f"{x} 关键指标", yurl(x, "key-statistics")) for x in symbols])
 
@@ -495,13 +508,14 @@ def chart(h):
     r = h.iloc[-1]
     c = r.Close
     low20 = h.Close.iloc[-21:-1].min()
-    print(f"- RSI6 {r.R6:.1f} · RSI24 {r.R24:.1f}"
+    tv = tv_url(SYM, INFO)
+    print(f"- RSI6 {L(f'{r.R6:.1f}', tv)} · RSI24 {L(f'{r.R24:.1f}', tv)}"
           + (" · **RSI6 > 90（不买第 15 条）**" if r.R6 > 90 else " · RSI6 > 80 超买" if r.R6 > 80 else " · **RSI6 < 20 超卖**" if r.R6 < 20 else ""))
     print(f"- 背离：{divergence(h)}")
-    print(f"- MA5 {r.MA5:.2f} · MA10 {r.MA10:.2f} · MA20 {r.MA20:.2f} · MA60 {r.MA60:.2f} · MA200 {r.MA200:.2f}（收盘在 200 日线{'上' if c > r.MA200 else '下'}方）"
+    print(f"- MA5 {r.MA5:.2f} · MA10 {r.MA10:.2f} · MA20 {r.MA20:.2f} · MA60 {r.MA60:.2f} · MA200 {L(f'{r.MA200:.2f}', tv)}（收盘在 200 日线{'上' if c > r.MA200 else '下'}方）"
           + (" · 20/30/60 多头排列" if r.MA20 > h.Close.rolling(30).mean().iloc[-1] > r.MA60 else ""))
     zone = "都在零轴上（进攻思维）" if r.DIF > 0 and r.DEA > 0 else "都在零轴下（防御思维）" if r.DIF < 0 and r.DEA < 0 else "一上一下（不判断）"
-    print(f"- MACD DIF {r.DIF:.2f} / DEA {r.DEA:.2f}：{zone}，{'金叉状态' if r.DIF > r.DEA else '死叉状态'}")
+    print(f"- MACD DIF {L(f'{r.DIF:.2f}', tv)} / DEA {L(f'{r.DEA:.2f}', tv)}：{zone}，{'金叉状态' if r.DIF > r.DEA else '死叉状态'}")
     print(f"- 5 日滚动 VWAP {r.RVWAP5:.2f}（收盘在其{'上' if c > r.RVWAP5 else '下'}方）")
     print(f"- 近期新低（DEFAULT：低于前 20 个交易日最低收盘 {low20:.2f}）：{'**是，命中不买第 1 条**' if c < low20 else '否'}")
     v5 = h.Volume.rolling(5).mean()
