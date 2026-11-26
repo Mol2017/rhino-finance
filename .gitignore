@@ -1,11 +1,9 @@
-# This repo publishes only the rhino-stock-analysis skill.
+# This repo publishes only the skill in skills/.
 # Everything else in the project folder stays local.
 /*
 !/README.md
 !/.gitignore
-!/rhino/
-/rhino/*
-!/rhino/skill/
+!/skills/
 
 __pycache__/
 *.pyc

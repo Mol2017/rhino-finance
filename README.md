@@ -2,10 +2,22 @@
 
 A Claude Code skill that applies the decision process of the YouTube channel 视野环球财经 (Rhino) to a US stock: forward value range, support/resistance strength, bottoming candles, the 9 buy points, the 18 no-buy rules, left-side tranches and scenario plans.
 
-- `rhino/skill/rhino-stock-analysis/SKILL.md`: the workflow and output format.
-- `references/01-07`: valuation, support/resistance, buy points, no-buy checklist, position and risk, market context, indicators.
-- `scripts/rhino_data.py`: prints a Yahoo Finance fact sheet for one ticker (needs `pip install yfinance`).
+```
+skills/rhino-stock-analysis/
+├── SKILL.md            workflow and output format
+├── references/         01 valuation · 02 support/resistance · 03 buy points · 04 no-buy checklist
+│                       05 position and risk · 06 market context · 07 indicators
+└── scripts/
+    └── rhino_data.py   Yahoo Finance fact sheet for one ticker (needs `pip install yfinance`)
+```
 
-Install: copy or symlink `rhino/skill/rhino-stock-analysis` into `~/.claude/skills/`.
+## Install
+
+```bash
+git clone https://github.com/Mol2017/rhino-finance.git
+ln -s "$PWD/rhino-finance/skills/rhino-stock-analysis" ~/.claude/skills/rhino-stock-analysis
+```
+
+Then ask Claude Code something like "用 Rhino 的方法分析 TSM".
 
 A personal study tool. Not investment advice.

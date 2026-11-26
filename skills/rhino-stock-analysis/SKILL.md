@@ -18,10 +18,11 @@ description: 用 Rhino（视野环球财经）的方法分析美股个股或大�
 ## 第 0 步：先跑数据脚本
 
 ```bash
-/home/wentao/rhino-finance/.venvs/quant/bin/python <本技能目录>/scripts/rhino_data.py TICKER [--peers A,B,C] [--pe-band 低 高]
+python3 <本技能目录>/scripts/rhino_data.py TICKER [--peers A,B,C] [--pe-band 低 高]
 ```
 
-- 本技能目录就是这个 SKILL.md 所在的文件夹（`~/.claude/skills/rhino-stock-analysis`）。没有那个 Python 就用任何装了 yfinance 的 Python（`pip install yfinance`）。
+- 本技能目录就是这个 SKILL.md 所在的文件夹（一般是 `~/.claude/skills/rhino-stock-analysis`）。
+- 需要 yfinance。`python3` 里没有时，先找已有的虚拟环境（如 `~/rhino-finance/.venvs/quant/bin/python`），都没有再 `pip install yfinance`。
 - 输出一份数据单（Yahoo Finance）：大盘结构（QQQ、SPY、DIA、IWM、SOXX、VIX、10 年期收益率、11 个板块 ETF）、市值和成交额门槛、EPS/营收预期和修正、估值辅助（PE 区间 × EPS、P/S 历史、同行表）、板块跌幅排名（不买第 6 条）、RSI6/24 和背离状态、均线、MACD、5 日滚动 VWAP、最近 3 根 K 线的形态判断、九转计数、5 日均量方向、波段和斐波那契（含 52 周高点以来的反转确认位）、密集交易区、增量 K 线、有效高低点、近 2 年的箱体边缘、未回补缺口、周线。
 - `--peers`：亏损股一定要自己挑业务最像的同行（Yahoo 的细分行业分类很粗）。
 - `--pe-band`：盈利股按 `01-valuation.md` 定好 PE 区间后再跑一次，脚本会算出两个财年的价值交易区间和中位价。

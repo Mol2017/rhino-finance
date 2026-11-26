@@ -23,7 +23,7 @@ try:
     import pandas as pd
     import yfinance as yf
 except ImportError:
-    sys.exit("needs yfinance, pandas, numpy: pip install yfinance  (or use /home/wentao/rhino-finance/.venvs/quant/bin/python)")
+    sys.exit("needs yfinance, pandas, numpy: pip install yfinance (or run it with a Python/venv that has it)")
 
 SECTOR_ETF = {"technology": "XLK", "healthcare": "XLV", "financial-services": "XLF", "consumer-cyclical": "XLY",
               "consumer-defensive": "XLP", "energy": "XLE", "industrials": "XLI", "basic-materials": "XLB",
